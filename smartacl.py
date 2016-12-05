@@ -1,17 +1,19 @@
 #!/usr/bin/python
 # coding: utf-8
-
+import pyjsonrpc
+import logging
 class SmartACL(object):
 
-    def __init__(self, host, port):
+    def __init__(self):
         self._controller = self.Controller()
         self._controller.call
+	self.switch = 1
 
-	while true:
+	while True:
 		#Get flows
-				
-		self._controller.call(method="report_flow_stats", params=[str(switch)])
-		self._controller.call(method="report_meter_stats", params=[str(switch)])
+		print "Getting flows"
+		self._controller.call(method="report_flow_stats", params=[str(self.switch)])
+		self._controller.call(method="report_meter_stats", params=[str(self.switch)])
 		
 
 #self._controller.call(method="enforce_service", params=[str(switch), src, ip, limit])
@@ -22,7 +24,6 @@ class SmartACL(object):
 
         def __init__(self):
             '''Connect to the controller.'''
-            self._testing = testing
             self._client = pyjsonrpc.HttpClient(url = "http://localhost:4000/jsonrpc")
 
         def call(self, **kwargs):
@@ -35,3 +36,5 @@ class SmartACL(object):
                 print e, kwargs
                 logging.debug('[controller][result]: %s', result)
             return result
+
+SmartACL()
