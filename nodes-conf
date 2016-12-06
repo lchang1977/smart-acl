@@ -1,0 +1,16 @@
+pingall
+h6 iperf3 -s &
+h6 iperf3 -s -p 9034 &
+h6 iperf3 -s -p 10066 &
+h5 iperf3 -c h6 -b 10m -t 120 -p 10066 &
+h1 iperf3 -c h6 -b 60m -t 120 &
+h4 iperf3 -c h6 -b 30m -t 10 -p 9034 
+
+h4 iperf3 -c h6 -b 35m -t 10 -p 9034 
+h4 iperf3 -c h6 -b 40m -t 10 -p 9034 
+h4 iperf3 -c h6 -b 45m -t 10 -p 9034 
+h4 iperf3 -c h6 -b 70m -t 10 -p 9034 
+h4 iperf3 -c h6 -b 80m -t 10 -p 9034 
+h4 iperf3 -c h6 -b 85m -t 10 -p 9034 
+h4 iperf3 -c h6 -b 100m -t 50 -p 9034 
+

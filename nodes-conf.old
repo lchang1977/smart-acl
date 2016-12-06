@@ -1,0 +1,6 @@
+h6 tc qdisc add dev h6-eth0 root handle 1:0 tbf rate 2300kbit buffer 1600 limit 3000
+pingall
+h6 iperf -s &
+h1 iperf -c h6 -t 100 &
+h4 iperf -u -c 10.0.0.6 -b 150m -t 100 & 
+
