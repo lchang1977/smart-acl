@@ -3,18 +3,20 @@
 import pyjsonrpc
 import logging
 import time
+import json
 class SmartACL(object):
 
     def __init__(self):
         self._controller = self.Controller()
+	logging.basicConfig(level=logging.DEBUG, format='%(asctime)-15s %(message)s')
         self._controller.call
 	self.switch = 1
 	#TODO read from file
 	self.whitelist = ["00:00:00:00:00:01", "00:00:00:00:00:02", "00:00:00:00:00:03"]
 	#Note this is only for datagathering and graph ploting. It is not required for function. Attacks are automatically detected.
-	self.attacklist = []
+	self.attacklist = ["00:00:00:00:00:04"]
 	#Call REF API for current estimated network throughput
-	self.total_speed = 20 #Mbp/s
+	self.total_bandwidth = 20 #Mbps
 	self.old_bandwidth = 0
 	self.old_flows = None
 
@@ -31,15 +33,26 @@ class SmartACL(object):
 		flows = self._controller.call(method="report_flows", params=[str(self.switch)])
 		#Check bandwidth used by whitelisted flows
 
-		print self._controller.call(method="report_port", params=[False, True, str(self.switch), 1])
+		#print self._controller.call(method="report_port", params=[False, True, str(self.switch), 1])
 		#This needs to be calculated over longer time
 		if(self.old_flows):
 			current_bandwidth = self.calculate_total_bandwidth_used(flows, self.old_flows)
-			print "Current bandwidth: " + str(current_bandwidth) + "mbps"
+			logging.debug("Total throughput: %smbps", str(current_bandwidth))
+			
+			#TODO calculate bandwidth of whitelist, other traffic, and attack traffic.
+			whitelist_throughput = self.calculate_whitelist_throughput(flows)
+	
+			logging.debug("Whitelist throughput: %smbps", str(whitelist_throughput))
+
+			other_throughput = self.calculate_other_throughput(flows)
+
+			logging.debug("Other throughput: %smbps", str(other_throughput))
+			#If other traffic > total_bw-whitelist_req then install meters.
+			
+
+
 	
 		self.old_flows = flows
-		print "throughput flows"
-		print flows
 		time.sleep(2)
 	#	print	self._controller.call(method="report_switch_ports", params=[True,True ,str(self.switch)])
 #		self._controller.call(method="report_meter_stats", params=[str(self.switch)])
@@ -51,14 +64,52 @@ class SmartACL(object):
     def calculate_total_port_bandwidth(self, ports):
 	pass
 
-    def calculate_whitelist_throughput(self):
-	pass
+    def calculate_whitelist_throughput(self, flows):
+	throughput = 0
+	for flow in flows:
+		for aloud_match in self.whitelist:
+			match_fields = flow['match']['OFPMatch']['oxm_fields'] 
+			if(len(match_fields)>2):
+				if(aloud_match in str(match_fields[2]["OXMTlv"]["value"])):
+					#TODO if no throughput field calculate it
+					if('throughput' in flow):
+						logging.debug("Found match in whitelist")
+						throughput += flow['throughput']
+					else:
+						logging.debug('Warning: no throughput field. Assuming missmatch between old and new flows')
+	return throughput
 
-    def calculate_other_throughput(self):
-	pass
+    def calculate_other_throughput(self, flows):
+	throughput = 0
+	for flow in flows:
+		match_fields = flow['match']['OFPMatch']['oxm_fields'] 
+		if(len(match_fields)>2):
+			#Check if this not in whitelist
+			#print str(match_fields[2]["OXMTlv"]["value"])
+			if(str(match_fields[2]["OXMTlv"]["value"]) not in self.whitelist):
+				if('throughput' in flow):
+					logging.debug("Found match not in whitelist")
+					throughput += flow['throughput']
+				else:
+					logging.debug('Warning: no throughput field. Assuming missmatch between old and new flows')
+					
+					
+	return throughput
 
     def get_attack_throughput(self):
-	pass
+	throughput = 0
+	for flow in flows:
+		for aloud_match in self.attacklist:
+			match_fields = flow['match']['OFPMatch']['oxm_fields'] 
+			if(len(match_fields)>2):
+				if(aloud_match in str(match_fields[2])):
+					if('throughput' in flow):
+						logging.debug("Found match in whitelist")
+						throughput += flow['throughput']
+					else:
+						logging.debug('Warning: no throughput field. Assuming missmatch between old and new flows')
+					
+	return throughput
 
     def calculate_total_bandwidth_used(self, flows, old_flows):
 	'''This accuracy depends on the switch implementation'''
@@ -75,10 +126,9 @@ class SmartACL(object):
 				
 		#TODO check if packet in rule. Ignore this rule
 				flow_bw = (flow["byte_count"]-old_flow["byte_count"])/delta
-				flow["throughtput"] = (flow_bw/1024/1024)*8
+				flow["throughput"] = (flow_bw/1024/1024)*8
 				current_bandwidth += flow_bw
 		#		diff_time(flow)
-		print flow
 
 
 #	result = current_bandwidth - self.old_bandwidth
