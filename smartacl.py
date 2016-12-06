@@ -11,12 +11,14 @@ class SmartACL(object):
 	logging.basicConfig(level=logging.DEBUG, format='%(asctime)-15s %(message)s')
         self._controller.call
 	self.switch = 1
+	self.IP_SRC_INDEX = 4
 	#TODO read from file
-	self.whitelist = ["00:00:00:00:00:01", "00:00:00:00:00:02", "00:00:00:00:00:03"]
+	self.whitelist = ["10.0.0.1", "10.0.0.2", "10.0.0.3"]
 	#Note this is only for datagathering and graph ploting. It is not required for function. Attacks are automatically detected.
-	self.attacklist = ["00:00:00:00:00:04"]
+	self.attacklist = ["10.0.0.4"]
+	self.test_server = ['10.0.0.10']
 	#Call REF API for current estimated network throughput
-	self.total_bandwidth = 20 #Mbps
+	self.total_bandwidth = 150 #Mbps
 	self.old_bandwidth = 0
 	self.old_flows = None
 
@@ -48,7 +50,13 @@ class SmartACL(object):
 
 			logging.debug("Other throughput: %smbps", str(other_throughput))
 			#If other traffic > total_bw-whitelist_req then install meters.
-			
+			available_bandwidth = self.total_bandwidth - self.whitelist_bandwidth_requirement
+			logging.debug("Available bandwidth %s", str(available_bandwidth))
+			if(other_throughput > self.total_bandwidth - self.whitelist_bandwidth_requirement):
+				logging.debug("Warning. Using too much bandwidth!")
+								
+				#self._controller.call(method="enforce_service", params=[str(self.switch), , ip, limit])
+			#print flows	
 
 
 	
@@ -69,8 +77,9 @@ class SmartACL(object):
 	for flow in flows:
 		for aloud_match in self.whitelist:
 			match_fields = flow['match']['OFPMatch']['oxm_fields'] 
-			if(len(match_fields)>2):
-				if(aloud_match in str(match_fields[2]["OXMTlv"]["value"])):
+			if(len(match_fields)>=self.IP_SRC_INDEX):
+				#print match_fields[self.IP_SRC_INDEX]
+				if(aloud_match in str(match_fields[self.IP_SRC_INDEX]["OXMTlv"]["value"])):
 					#TODO if no throughput field calculate it
 					if('throughput' in flow):
 						logging.debug("Found match in whitelist")
@@ -83,10 +92,10 @@ class SmartACL(object):
 	throughput = 0
 	for flow in flows:
 		match_fields = flow['match']['OFPMatch']['oxm_fields'] 
-		if(len(match_fields)>2):
+		if(len(match_fields)>=self.IP_SRC_INDEX):
 			#Check if this not in whitelist
 			#print str(match_fields[2]["OXMTlv"]["value"])
-			if(str(match_fields[2]["OXMTlv"]["value"]) not in self.whitelist):
+			if(str(match_fields[self.IP_SRC_INDEX]["OXMTlv"]["value"]) not in self.whitelist):
 				if('throughput' in flow):
 					logging.debug("Found match not in whitelist")
 					throughput += flow['throughput']
@@ -101,8 +110,8 @@ class SmartACL(object):
 	for flow in flows:
 		for aloud_match in self.attacklist:
 			match_fields = flow['match']['OFPMatch']['oxm_fields'] 
-			if(len(match_fields)>2):
-				if(aloud_match in str(match_fields[2])):
+			if(len(match_fields)>=self.IP_SRC_INDEX):
+				if(aloud_match in str(match_fields[self.IP_SRC_INDEX ])):
 					if('throughput' in flow):
 						logging.debug("Found match in whitelist")
 						throughput += flow['throughput']
