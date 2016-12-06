@@ -16,7 +16,7 @@ class SmartACL(object):
 	self.whitelist = ["10.0.0.1", "10.0.0.2", "10.0.0.3"]
 	#Note this is only for datagathering and graph ploting. It is not required for function. Attacks are automatically detected.
 	self.attacklist = ["10.0.0.4"]
-	self.test_server = ['10.0.0.10']
+	self.test_server = ['10.0.0.6']
 	#Call REF API for current estimated network throughput
 	self.total_bandwidth = 150 #Mbps
 	self.old_bandwidth = 0
@@ -134,9 +134,10 @@ class SmartACL(object):
 				delta = (self.diff_time(old_flow["duration"], old_flow["nduration"], flow["duration"], flow["nduration"]))
 				
 		#TODO check if packet in rule. Ignore this rule
-				flow_bw = (flow["byte_count"]-old_flow["byte_count"])/delta
-				flow["throughput"] = (flow_bw/1024/1024)*8
-				current_bandwidth += flow_bw
+				if(not delta==0):
+					flow_bw = (flow["byte_count"]-old_flow["byte_count"])/delta
+					flow["throughput"] = (flow_bw/1024/1024)*8
+					current_bandwidth += flow_bw
 		#		diff_time(flow)
 
 
