@@ -11,15 +11,15 @@ Firslty experiementation start with viewing possible attack types and how they m
 
 Install python
 
-`sudo apt-get install python`
+`$ sudo apt-get install python`
 
 Install pip
 
-`sudo apt-get install python-pip`
+`$ sudo apt-get install python-pip`
 
 Install ryu
 
-`sudo pip install ryu`
+`$ sudo pip install ryu`
 
 Clone REF
 
